@@ -10,7 +10,7 @@
     style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src    'self' https://fonts.gstatic.com;
     img-src     'self' data: https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
-    connect-src 'self' https://*.supabase.co https://domainr.p.rapidapi.com;
+    connect-src 'self' https://*.supabase.co https://cloudflare-dns.com;
     frame-src   'none';
     object-src  'none';
     base-uri    'self';
@@ -1030,25 +1030,70 @@
       try { localStorage.setItem('q_' + base, JSON.stringify({ ts: Date.now(), data: domains })); } catch {}
     }
 
-    // ── API — proxied through Supabase Edge Function (key never hits the client)
-    const PROXY = `${SUPABASE_URL}/functions/v1/domain-proxy`;
+    // ── Domain suggestion generation (no external API) ───────────────────────
+    const SUGGESTION_PREFIXES = ['get', 'try', 'use', 'my', 'the', 'go', 'hey', 'meet', 'hello', 'best', 'top', 'pro'];
+    const SUGGESTION_SUFFIXES = ['app', 'hq', 'hub', 'pro', 'ai', 'spot', 'co', 'desk', 'api', 'labs', 'ly', 'ify'];
+    const PRIORITY_TLDS = ['com', 'io', 'co', 'app', 'ai', 'dev'];
 
-    async function searchSuggestions(query) {
-      const res = await fetch(`${PROXY}?action=search&query=${encodeURIComponent(query)}`);
-      if (!res.ok) throw new Error('Search API error ' + res.status);
-      return res.json();
+    function generateSuggestions(query) {
+      const domains = [];
+      const seen = new Set();
+      const add = d => { if (!seen.has(d)) { seen.add(d); domains.push(d); } };
+
+      // 1. All TLD variants (exact keyword)
+      for (const tld of TLDS) add(`${query}.${tld}`);
+
+      // 2. Prefix + keyword on popular TLDs
+      for (const pfx of SUGGESTION_PREFIXES) {
+        add(`${pfx}${query}.com`);
+        add(`${pfx}${query}.io`);
+        add(`${pfx}${query}.co`);
+      }
+
+      // 3. Keyword + suffix on popular TLDs
+      for (const sfx of SUGGESTION_SUFFIXES) {
+        add(`${query}${sfx}.com`);
+        add(`${query}${sfx}.io`);
+        add(`${query}${sfx}.app`);
+      }
+
+      return domains.slice(0, 20);
     }
 
+    // ── Domain availability via DNS over HTTPS (Cloudflare, CORS-enabled) ────
+    // NS records exist on every registered domain — NXDOMAIN means unregistered.
     async function checkStatus(domain) {
       const cached = getCached('s_' + domain);
       if (cached) return cached;
 
-      const res = await fetch(`${PROXY}?action=status&domain=${encodeURIComponent(domain)}`);
-      if (!res.ok) throw new Error('Status API error ' + res.status);
-      const data = await res.json();
-      const summary = data?.status?.[0]?.summary ?? 'unknown';
-      setCache('s_' + domain, summary);
-      return summary;
+      try {
+        const res = await fetch(
+          `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=NS`,
+          { headers: { Accept: 'application/dns-json' } }
+        );
+        if (!res.ok) { setCache('s_' + domain, 'unknown'); return 'unknown'; }
+
+        const data = await res.json();
+        let summary;
+
+        if (data.Status === 3) {
+          // NXDOMAIN — no DNS record exists → domain is available
+          summary = 'inactive';
+        } else if (data.Status === 0 && data.Answer?.length > 0) {
+          // NS records found → domain is registered and active
+          summary = 'active';
+        } else if (data.Status === 0) {
+          // No error but no NS answer → registered but NS not yet propagated
+          summary = 'maybe';
+        } else {
+          summary = 'unknown';
+        }
+
+        setCache('s_' + domain, summary);
+        return summary;
+      } catch {
+        return 'unknown';
+      }
     }
 
     function parseStatus(summary) {
@@ -1122,16 +1167,11 @@
           }
         } else {
           const embedded = findEmbeddedTld(query);
-          const data = await searchSuggestions(query);
-          if (thisSearch !== searchId) return;
-
-          const suggested = (data.results || []).map(r => r.domain);
-          const tldDomains = TLDS.map(tld => `${query}.${tld}`);
-          domains = [...new Set([...suggested, ...tldDomains])].slice(0, 20);
+          domains = generateSuggestions(query);
 
           if (embedded) {
             const ed = `${embedded.name}.${embedded.tld}`;
-            domains = [ed, ...domains.filter(d => d !== ed)];
+            domains = [ed, ...domains.filter(d => d !== ed)].slice(0, 20);
           }
 
           // Cache this suggestion list so TLD-appended searches can reuse it
