@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CSP: block plugins, lock base URI, restrict framing, scope fetch targets -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src  'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+    style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src    'self' https://fonts.gstatic.com;
+    img-src     'self' data: https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
+    connect-src 'self' https://*.supabase.co https://domainr.p.rapidapi.com;
+    frame-src   'none';
+    object-src  'none';
+    base-uri    'self';
+    form-action 'self';
+  ">
+  <title>opendomain — find your next great domain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Pinned to exact version + SRI so the file can't be tampered with in transit.
+       To upgrade: bump version, get new hash from https://www.jsdelivr.com/package/npm/@supabase/supabase-js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.2/dist/umd/supabase.js"
+          integrity="sha256-mpktpJWUIPVizC1GQ0rBuUR0gdYAH2t3UUuesSoxhbs="
+          crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fff;
+      color: #3f3f3f;
+      min-height: 100vh;
+    }
+
+    /* ── Keyframes ───────────────────────────────────────────────── */
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes dotPop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.6); }
+      70%  { transform: scale(0.85); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-5px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes spin {
+      to { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    @keyframes tileIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes taglineIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px clamp(20px, calc(50vw - 260px), 160px);
+      width: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #3f3f3f;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .logo-text span { color: #b3b3b3; font-weight: 500; }
+
+    /* Auth area */
+    .auth-area { display: flex; align-items: center; gap: 10px; }
+    .header-auth-pills { display: flex; align-items: center; gap: 10px; }
+
+    /* Mobile auth area (below tagline, above search) */
+    #mobileAuthArea {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 20px;
+    }
+    #mobileAuthArea .auth-pill {
+      width: 100%;
+      justify-content: center;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+    }
+
+    .auth-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 18px;
+      border: 1px solid #b3b3b3;
+      border-radius: 100px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #1f1f1f;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .auth-pill:hover { border-color: #888; background: #fafafa; }
+    .auth-pill:active { transform: scale(0.96); }
+    .auth-pill svg, .auth-pill img { flex-shrink: 0; }
+
+    .auth-pill.email-pill {
+      color: #666;
+      border-color: #d8d8d8;
+    }
+
+    /* User menu */
+    .user-menu { position: relative; }
+
+    .user-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      border: 1px solid #d8d8d8;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #5d5d5d;
+      overflow: hidden;
+      transition: transform 0.1s;
+    }
+    .user-avatar:active { transform: scale(0.92); }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      right: 0; top: calc(100% + 8px);
+      background: #fff;
+      border: 1px solid #e3e3e3;
+      border-radius: 10px;
+      min-width: 200px;
+      z-index: 100;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .user-dropdown.open {
+      display: block;
+      animation: dropdownIn 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .user-dropdown-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #efefef;
+    }
+    .user-dropdown-header .user-name  { font-size: 0.85rem; font-weight: 500; color: #3f3f3f; }
+    .user-dropdown-header .user-email { font-size: 0.75rem; color: #999; margin-top: 2px; }
+
+    .dropdown-item {
+      display: block;
+      padding: 10px 16px;
+      font-size: 0.82rem;
+      color: #666;
+      cursor: pointer;
+      transition: background 0.1s;
+      background: none; border: none;
+      font-family: inherit;
+      width: 100%;
+      text-align: left;
+    }
+    .dropdown-item:hover { background: #f7f7f7; }
+    .dropdown-item.danger:hover { color: #d0392b; background: #fff5f5; }
+
+    /* ── Modal ───────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open {
+      display: flex;
+      animation: overlayIn 0.18s ease-out both;
+    }
+
+    .modal {
+      background: #fff;
+      border: 1px solid #e3e3e3;
+      border-radius: 14px;
+      padding: 32px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .modal-overlay.open .modal {
+      animation: modalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .modal h2 { font-size: 1.15rem; font-weight: 600; color: #3f3f3f; margin-bottom: 6px; letter-spacing: -0.02em; }
+    .modal p  { font-size: 0.82rem; color: #999; margin-bottom: 20px; }
+
+    .oauth-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 10px;
+      border: 1px solid #d0d0d0;
+      background: #fff;
+      color: #1f1f1f;
+      letter-spacing: -0.01em;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    .oauth-btn:hover { border-color: #aaa; background: #fafafa; }
+    .oauth-btn:active { transform: scale(0.97); }
+
+    .modal-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 14px 0;
+    }
+    .modal-divider::before,
+    .modal-divider::after { content: ''; flex: 1; height: 1px; background: #efefef; }
+    .modal-divider span { font-size: 0.72rem; color: #bbb; }
+
+    .magic-form { display: flex; flex-direction: column; gap: 8px; }
+
+    .magic-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #fafafa;
+      border: 1px solid #e3e3e3;
+      border-radius: 8px;
+      color: #3f3f3f;
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .magic-input:focus { border-color: #aaa; background: #fff; box-shadow: 0 0 0 3px rgba(66,133,244,0.08); }
+    .magic-input::placeholder { color: #bbb; }
+
+    .magic-btn {
+      width: 100%;
+      padding: 10px;
+      background: #f5f5f5;
+      border: 1px solid #e3e3e3;
+      border-radius: 8px;
+      color: #5d5d5d;
+      font-size: 0.88rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    .magic-btn:hover { border-color: #c0c0c0; background: #ebebeb; color: #3f3f3f; }
+    .magic-btn:active { transform: scale(0.97); }
+
+    .magic-sent {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; color: #2d9e5f;
+      padding: 6px 0;
+      justify-content: center;
+    }
+
+    .modal-close {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: #bbb;
+      cursor: pointer;
+      background: none; border: none; font-family: inherit;
+      transition: color 0.1s;
+    }
+    .modal-close:hover { color: #888; }
+
+    /* ── Main ────────────────────────────────────────────────────── */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 80px;
+    }
+
+    .tagline {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: #3f3f3f;
+      text-align: center;
+      letter-spacing: -0.03em;
+      line-height: 1.3;
+      max-width: 480px;
+      margin: 60px 0 28px;
+      animation: taglineIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+      transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .tagline.dimmed { color: #DFDDD9; }
+
+    /* ── Search bar ──────────────────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 10px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 18px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px;
+      color: #aaa;
+      pointer-events: none;
+      transition: color 0.15s;
+    }
+
+    #search {
+      width: 100%;
+      padding: 14px 44px 14px 48px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      font-weight: 500;
+      background: #fbfbfb;
+      border: 2px solid #e3e3e3;
+      border-radius: 100px;
+      color: #3f3f3f;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.2s;
+    }
+    #search:focus {
+      border-color: #c0c0c0;
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(122, 113, 92, 0.07);
+    }
+    #search::placeholder { color: #aaa; font-weight: 400; }
+
+    .spinner {
+      display: none;
+      position: absolute;
+      right: 18px; top: 50%;
+      transform: translateY(-50%);
+      width: 16px; height: 16px;
+      border: 2px solid #e3e3e3;
+      border-top-color: #aaa;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .spinner.visible { display: block; }
+
+    /* Save hint */
+    .save-hint {
+      font-size: 0.78rem;
+      color: #b0aeac;
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 28px;
+      transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .save-hint.dimmed { color: #DFDDD9; }
+    .save-hint a {
+      color: #b0aeac;
+      transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .save-hint a:hover { color: #666; }
+    .save-hint.dimmed a { color: #DFDDD9; }
+    .save-hint.dimmed:hover { color: #b0aeac; }
+    .save-hint.dimmed:hover a { color: #b0aeac; }
+
+    /* ── Results ─────────────────────────────────────────────────── */
+    .results {
+      list-style: none;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .result-row {
+      border-bottom: 1px solid #e3e3e3;
+      /* animation applied inline per-row for stagger */
+    }
+    .result-row:first-child { border-top: 1px solid #e3e3e3; }
+
+    .row-main {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+      cursor: default;
+    }
+
+    .result-row.available .row-main { cursor: pointer; }
+
+    .row-left {
+      display: flex; align-items: center; gap: 14px;
+    }
+
+    .status-dot {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background-color 0.25s ease-out;
+    }
+    .status-dot.dot-pop {
+      animation: dotPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .dot-loading     { background: #e0e0e0; }
+    .dot-available   { background: #3cc47c; }
+    .dot-taken       { background: #ff6b35; }
+    .dot-maybe       { background: #f5d030; }
+    .dot-error       { background: #e0e0e0; }
+
+    .domain-label {
+      font-size: 0.94rem;
+      font-weight: 500;
+      color: #5d5d5d;
+      letter-spacing: -0.01em;
+    }
+
+    .row-right {
+      display: flex; align-items: center; gap: 21px;
+      flex-shrink: 0;
+    }
+
+    .buy-link {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4285f4;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      background: none; border: none;
+      font-family: inherit;
+      text-decoration: none;
+      transition: opacity 0.1s;
+    }
+    .buy-link:hover { text-decoration: underline; }
+
+    .whois-link {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #8f8f8f;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      transition: color 0.1s;
+    }
+    .whois-link:hover { color: #555; }
+    .whois-link svg { flex-shrink: 0; }
+
+    .ext-link {
+      display: flex; align-items: center;
+      color: #c0c0c0;
+      text-decoration: none;
+      transition: color 0.1s;
+      flex-shrink: 0;
+    }
+    .ext-link:hover { color: #555; }
+    .ext-link svg {
+      width: 14px; height: 14px;
+    }
+
+    .whois-text-short { display: none; }
+    .whois-text-full  { display: inline; }
+
+    /* ── Purchase panel ──────────────────────────────────────────── */
+    .purchase-panel {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      padding: 0;
+      border-top: 1px solid transparent;
+      transition:
+        max-height 0.32s cubic-bezier(0.34, 1.1, 0.64, 1),
+        opacity    0.22s ease-out,
+        padding    0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .result-row.selected.available .purchase-panel {
+      max-height: 1200px;
+      opacity: 1;
+      padding: 20px 0 24px;
+      border-top-color: #efefef;
+    }
+
+    .panel-domain {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #3f3f3f;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .buy-now-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%;
+      padding: 12px;
+      background: #4285f4;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      letter-spacing: -0.02em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-bottom: 20px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .buy-now-btn:hover { background: #3370e0; }
+    .buy-now-btn:active { transform: scale(0.98); }
+
+    .purchase-options-heading {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #3f3f3f;
+      letter-spacing: -0.01em;
+      margin-bottom: 10px;
+    }
+
+    .registrar-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .registrar-tile {
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px 10px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.12s, transform 0.1s;
+    }
+    .registrar-tile:hover { background: #ebebeb; }
+    .registrar-tile:active { transform: scale(0.95); }
+    .registrar-tile span {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #5d5d5d;
+      letter-spacing: -0.01em;
+      text-align: center;
+    }
+
+    .registrar-grid-hidden { margin-top: 8px; }
+
+    .show-more-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      background: none;
+      border: 1px solid #e3e3e3;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #8f8f8f;
+      cursor: pointer;
+      transition: border-color 0.12s, color 0.12s, transform 0.1s;
+    }
+    .show-more-btn:hover { border-color: #c0c0c0; color: #5d5d5d; }
+    .show-more-btn:active { transform: scale(0.98); }
+    .show-more-count {
+      background: #f0f0f0;
+      border-radius: 100px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+    }
+
+    /* ── History ─────────────────────────────────────────────────── */
+    .history-section {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 28px;
+    }
+
+    .history-heading {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      margin-bottom: 8px;
+    }
+
+    .history-list { list-style: none; }
+
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: opacity 0.1s;
+    }
+    .history-item:hover .history-query { color: #3f3f3f; }
+    .history-query { font-size: 0.88rem; color: #aaa; transition: color 0.1s; font-weight: 400; flex: 1; }
+    .history-time  { font-size: 0.72rem; color: #d0d0d0; text-align: right; }
+    .history-delete {
+      display: flex; align-items: center; justify-content: center;
+      margin-left: 30px; padding: 4px;
+      background: none; border: none; cursor: pointer;
+      color: #ddd; border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .history-delete:hover { color: #999; background: #f5f5f5; }
+    .history-delete svg { display: block; }
+
+    .history-empty {
+      font-size: 0.85rem; color: #ccc;
+      padding: 16px 0;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: 16px clamp(20px, calc(50vw - 260px), 160px); }
+      .auth-pill .pill-text { display: none; }
+      .auth-pill { padding: 8px 12px; }
+      .tagline { font-size: 1.25rem; margin: 40px 0 22px; }
+      .registrar-grid { grid-template-columns: repeat(2, 1fr); }
+      .modal { margin: 16px; }
+      .whois-text-short { display: inline; }
+      .whois-text-full  { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header>
+    <a class="logo" href="/">
+      <svg width="30" height="25" viewBox="0 0 42 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M29.202 17.5808C29.202 11.1626 23.999 5.9596 17.5808 5.9596C11.1626 5.9596 5.9596 11.1626 5.9596 17.5808C5.9596 23.999 11.1626 29.202 17.5808 29.202V35.1616C7.8712 35.1616 0 27.2904 0 17.5808C0 7.8712 7.8712 0 17.5808 0C27.2904 0 35.1616 7.8712 35.1616 17.5808C35.1616 27.2904 27.2904 35.1616 17.5808 35.1616V29.202C23.999 29.202 29.202 23.999 29.202 17.5808Z" fill="#3F3F3F"/>
+        <circle cx="38.7374" cy="3.57576" r="3.57576" fill="#11CE8F"/>
+      </svg>
+      <span class="logo-text">opendomain<span>.name</span></span>
+    </a>
+    <div class="auth-area" id="authArea">
+      <!-- Logged-out state (desktop) -->
+      <div class="header-auth-pills">
+        <button class="auth-pill" id="btnGoogle">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          <span class="pill-text">Sign in with Google</span>
+        </button>
+        <button class="auth-pill email-pill" id="btnOpenEmailModal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <span class="pill-text">Sign in with email</span>
+        </button>
+      </div>
+      <!-- Logged-in state -->
+      <div class="user-menu" id="userMenu" style="display:none">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <div class="user-name" id="ddName">—</div>
+            <div class="user-email" id="ddEmail">—</div>
+          </div>
+          <button class="dropdown-item danger" id="btnSignOut">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main>
+    <h1 class="tagline">Find your next great domain name,<br>it just may be open.</h1>
+
+    <!-- Mobile-only auth buttons (below tagline, above search) -->
+    <div id="mobileAuthArea">
+      <button class="auth-pill" id="btnGoogleMobile">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <button class="auth-pill email-pill" id="btnEmailMobile">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Sign in with email
+      </button>
+    </div>
+
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="search a domain name" autocomplete="off" autofocus spellcheck="false">
+      <div class="spinner" id="spinner"></div>
+    </div>
+
+    <p class="save-hint" id="saveHint">
+      Your searches can be saved if you register using <a id="hintGoogle">Google</a> or <a id="hintEmail">email</a>
+    </p>
+
+    <ul class="results" id="results"></ul>
+
+    <div class="history-section" id="historySection" style="display:none">
+      <div class="history-heading">Recent searches</div>
+      <ul class="history-list" id="historyList"></ul>
+    </div>
+  </main>
+
+  <!-- ── Email / Magic Link Modal ── -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2>Sign in with email</h2>
+      <p>We'll send you a magic link to sign in instantly</p>
+
+      <button class="oauth-btn" id="btnGoogleModal">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+
+      <div class="modal-divider"><span>or</span></div>
+
+      <div class="magic-form" id="magicForm">
+        <input type="email" id="magicEmail" class="magic-input" placeholder="your@email.com" autocomplete="email">
+        <button class="magic-btn" id="btnMagic">Send magic link</button>
+        <div class="magic-sent" id="magicSent" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+          Check your email for the login link
+        </div>
+      </div>
+
+      <button class="modal-close" id="modalClose">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Security helpers ─────────────────────────────────────────────────────
+    // Escape user-controlled strings before inserting into innerHTML
+    function escapeHTML(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+
+    // ── Config ───────────────────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://wmsxlrstfwfmonispafy.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ybc3AcHILvGoXUG8PIe0Xg_2Z50dcMZ';
+    // API key removed — calls now go through the server-side edge function proxy
+    const CACHE_TTL    = 60 * 60 * 1000; // 1 hour
+
+    // Affiliate IDs — swap in once approved
+    const AFF = {
+      namecheap: 'YOUR_NAMECHEAP_AFF_ID',
+      godaddy:   'YOUR_GODADDY_AFF_ID',
+      hover:     'YOUR_HOVER_AFF_ID',
+      dynadot:   'YOUR_DYNADOT_AFF_ID',
+      name:      'YOUR_NAME_AFF_ID',
+    };
+
+    const TLDS = [
+      'com', 'net', 'org', 'io', 'co', 'app', 'dev', 'ai', 'me', 'xyz', 'shop', 'store'
+    ];
+
+    // Primary CTA = Namecheap (highest commission). Supports all TLDs we check.
+    const REGISTRARS_PRIMARY = { name: 'Namecheap', url: d => `https://www.namecheap.com/domains/registration/results/?domain=${d}&aff=${AFF.namecheap}` };
+
+    // Affiliate IDs for registrars — swap in once approved
+    const AFF2 = {
+      iwantmyname:      'YOUR_IWANTMYNAME_AFF_ID',
+      rebel:            'YOUR_REBEL_AFF_ID',
+      domain101:        'YOUR_101DOMAIN_AFF_ID',
+      domaindiscount24: 'YOUR_DD24_AFF_ID',
+      juhub:            'YOUR_JUHUB_AFF_ID',
+    };
+
+    // All registrars — tlds:'*' = all, or list specific ones
+    const REGISTRARS_GRID = [
+      { name: 'iwantmyname',      url: d => `https://iwantmyname.com/search/?domain=${d}`,                                        tlds: '*' },
+      { name: 'GoDaddy',          url: d => `https://www.godaddy.com/domainsearch/find?domainToCheck=${d}&isc=${AFF.godaddy}`,     tlds: '*' },
+      { name: 'Porkbun',          url: d => `https://porkbun.com/checkout/search?q=${d}`,                                          tlds: '*' },
+      { name: 'Rebel',            url: d => `https://www.rebel.com/domain-search/?domain=${d}`,                                    tlds: ['com','net','org','io','co','me','xyz','shop','store'] },
+      { name: 'Dynadot',          url: d => `https://www.dynadot.com/domain/search.html?domain=${d}&aid=${AFF.dynadot}`,           tlds: '*' },
+      { name: '101domain',        url: d => `https://www.101domain.com/domain_search.htm?search=${d}`,                             tlds: '*' },
+      { name: 'Squarespace',      url: d => `https://domains.squarespace.com/?q=${d}`,                                             tlds: ['com','net','org','io','co','me','xyz','shop'] },
+      { name: 'Domain Discount 24', url: d => `https://www.domaindiscount24.com/en/domain-search?domain=${d}`,                    tlds: ['com','net','org','io','co','me','xyz','shop','store','app','dev'] },
+      { name: 'domains.ch',       url: d => `https://www.domains.ch/en/domain-check/?domain=${d}`,                                tlds: ['com','net','org','io','co','me','xyz'] },
+      { name: 'DreamHost',        url: d => `https://www.dreamhost.com/r.cgi?reg_domain=${d}`,                                    tlds: ['com','net','org','io','co','me','info','biz'] },
+      { name: 'DNSimple',         url: d => `https://dnsimple.com/r/${d}`,                                                         tlds: ['com','net','org','io','co','app','dev','me','ai','xyz'] },
+      { name: 'Namecheap',        url: d => `https://www.namecheap.com/domains/registration/results/?domain=${d}&aff=${AFF.namecheap}`, tlds: '*' },
+      { name: 'JuHub',            url: d => `https://juhub.com/domain/?q=${d}`,                                                    tlds: ['com','net','org','io','co','me','xyz','shop'] },
+    ];
+
+    const GRID_SHOW_DEFAULT = 6;
+
+    // Return only registrars that support a given TLD
+    function registrarsForDomain(domain) {
+      const tld = domain.split('.').slice(1).join('.');
+      return REGISTRARS_GRID.filter(r => r.tlds === '*' || r.tlds.includes(tld));
+    }
+
+    // ── Supabase ─────────────────────────────────────────────────────────────
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { flowType: 'pkce', detectSessionInUrl: true }
+    });
+    let currentUser = null;
+    let historyTimer = null;
+
+    async function initAuth() {
+      // Register listener FIRST so it catches the SIGNED_IN event
+      // fired when Supabase exchanges the magic-link code in the URL
+      sb.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+        if (event === 'SIGNED_IN') {
+          // Clean up the ?code= / #access_token= from the address bar
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      });
+      // Then hydrate the initial session (covers normal page loads)
+      const { data: { session } } = await sb.auth.getSession();
+      setUser(session?.user ?? null);
+    }
+
+    function setUser(user) {
+      currentUser = user;
+      const loggedOut = ['btnGoogle','btnOpenEmailModal'];
+      const loggedIn  = document.getElementById('userMenu');
+      const mobileAuth = document.getElementById('mobileAuthArea');
+
+      if (user) {
+        loggedOut.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+        if (mobileAuth) mobileAuth.style.display = 'none';
+        loggedIn.style.display = 'block';
+        document.getElementById('saveHint').style.display = 'none';
+        const name   = user.user_metadata?.full_name || user.email?.split('@')[0] || '?';
+        const email  = user.email || '';
+        const avatar = user.user_metadata?.avatar_url;
+        document.getElementById('ddName').textContent  = name;
+        document.getElementById('ddEmail').textContent = email;
+        const av = document.getElementById('userAvatar');
+        // Only allow avatar URLs from known Google/GitHub CDN domains
+        const trustedAvatar = avatar && /^https:\/\/(lh3\.googleusercontent\.com|avatars\.githubusercontent\.com)\//.test(avatar);
+        av.innerHTML = trustedAvatar ? `<img src="${escapeHTML(avatar)}" alt="">` : escapeHTML(name[0].toUpperCase());
+        loadHistory();
+      } else {
+        loggedOut.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
+        if (mobileAuth) mobileAuth.style.display = '';
+        loggedIn.style.display = 'none';
+        document.getElementById('saveHint').style.display = '';
+        document.getElementById('historySection').style.display = 'none';
+      }
+    }
+
+    async function signInWithGoogle() {
+      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    }
+
+    async function sendMagicLink() {
+      const email = document.getElementById('magicEmail').value.trim();
+      if (!email) return;
+      const btn = document.getElementById('btnMagic');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+      if (!error) {
+        document.getElementById('magicEmail').style.display = 'none';
+        btn.style.display = 'none';
+        document.getElementById('magicSent').style.display = 'flex';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Send magic link';
+        alert('Something went wrong. Please try again.');
+      }
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      closeDropdown();
+    }
+
+    // ── History ───────────────────────────────────────────────────────────────
+    async function saveSearch(query) {
+      if (!currentUser) return;
+      await sb.from('search_history').upsert(
+        { user_id: currentUser.id, query, searched_at: new Date().toISOString() },
+        { onConflict: 'user_id,query' }
+      );
+    }
+
+    async function loadHistory() {
+      if (!currentUser) return;
+      const { data } = await sb.from('search_history')
+        .select('query, searched_at')
+        .eq('user_id', currentUser.id)
+        .order('searched_at', { ascending: false })
+        .limit(10);
+
+      const section = document.getElementById('historySection');
+      const list    = document.getElementById('historyList');
+      section.style.display = 'block';
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<li class="history-empty">No searches yet</li>';
+        return;
+      }
+
+      list.innerHTML = data.map(row => {
+        const d = new Date(row.searched_at);
+        const t = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return `<li class="history-item" data-query="${escapeHTML(row.query)}">
+          <span class="history-query">${escapeHTML(row.query)}</span>
+          <span class="history-time">${t}</span>
+          <button class="history-delete" title="Remove" aria-label="Remove search">
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/>
+            </svg>
+          </button>
+        </li>`;
+      }).join('');
+
+      list.querySelectorAll('.history-item').forEach(li => {
+        li.addEventListener('click', () => {
+          searchInput.value = li.dataset.query;
+          searchInput.dispatchEvent(new Event('input'));
+          searchInput.focus();
+        });
+        li.querySelector('.history-delete').addEventListener('click', async (e) => {
+          e.stopPropagation(); // don't trigger the row click
+          const query = li.dataset.query;
+          await sb.from('search_history').delete()
+            .eq('user_id', currentUser.id)
+            .eq('query', query);
+          li.remove();
+          // show empty state if list is now empty
+          if (!list.querySelector('.history-item')) {
+            list.innerHTML = '<li class="history-empty">No searches yet</li>';
+          }
+        });
+      });
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────────
+    function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+    function closeDropdown() { document.getElementById('userDropdown').classList.remove('open'); }
+
+    document.getElementById('btnGoogle').addEventListener('click', signInWithGoogle);
+    document.getElementById('btnOpenEmailModal').addEventListener('click', openModal);
+    document.getElementById('btnGoogleMobile').addEventListener('click', signInWithGoogle);
+    document.getElementById('btnEmailMobile').addEventListener('click', openModal);
+    document.getElementById('btnGoogleModal').addEventListener('click', signInWithGoogle);
+    document.getElementById('btnMagic').addEventListener('click', sendMagicLink);
+    document.getElementById('magicEmail').addEventListener('keydown', e => { if (e.key === 'Enter') sendMagicLink(); });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    document.getElementById('hintGoogle').addEventListener('click', signInWithGoogle);
+    document.getElementById('hintEmail').addEventListener('click', openModal);
+
+    document.getElementById('userAvatar').addEventListener('click', () => {
+      document.getElementById('userDropdown').classList.toggle('open');
+    });
+    document.getElementById('btnSignOut').addEventListener('click', signOut);
+    document.addEventListener('click', e => {
+      if (!document.getElementById('userMenu').contains(e.target)) closeDropdown();
+    });
+
+    // ── Cache ─────────────────────────────────────────────────────────────────
+    function getCached(domain) {
+      try {
+        const raw = localStorage.getItem('d_' + domain);
+        if (!raw) return null;
+        const e = JSON.parse(raw);
+        if (Date.now() - e.ts > CACHE_TTL) { localStorage.removeItem('d_' + domain); return null; }
+        return e.data;
+      } catch { return null; }
+    }
+    function setCache(domain, data) {
+      try { localStorage.setItem('d_' + domain, JSON.stringify({ ts: Date.now(), data })); } catch {}
+    }
+    function getCachedSuggestions(base) {
+      try {
+        const raw = localStorage.getItem('q_' + base);
+        if (!raw) return null;
+        const e = JSON.parse(raw);
+        if (Date.now() - e.ts > CACHE_TTL) { localStorage.removeItem('q_' + base); return null; }
+        return e.data; // array of domain strings
+      } catch { return null; }
+    }
+    function setCachedSuggestions(base, domains) {
+      try { localStorage.setItem('q_' + base, JSON.stringify({ ts: Date.now(), data: domains })); } catch {}
+    }
+
+    // ── API — proxied through Supabase Edge Function (key never hits the client)
+    const PROXY = `${SUPABASE_URL}/functions/v1/domain-proxy`;
+
+    async function searchSuggestions(query) {
+      const res = await fetch(`${PROXY}?action=search&query=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error('Search API error ' + res.status);
+      return res.json();
+    }
+
+    async function checkStatus(domain) {
+      const cached = getCached('s_' + domain);
+      if (cached) return cached;
+
+      const res = await fetch(`${PROXY}?action=status&domain=${encodeURIComponent(domain)}`);
+      if (!res.ok) throw new Error('Status API error ' + res.status);
+      const data = await res.json();
+      const summary = data?.status?.[0]?.summary ?? 'unknown';
+      setCache('s_' + domain, summary);
+      return summary;
+    }
+
+    function parseStatus(summary) {
+      if (!summary) return 'unknown';
+      if (summary === 'inactive' || summary === 'available') return 'available';
+      if (summary === 'active' || summary === 'taken')       return 'registered';
+      if (summary === 'premium' || summary === 'marketed')   return 'premium';
+      if (summary === 'parked' || summary === 'pending')     return 'maybe';
+      return 'unknown';
+    }
+
+    // ── TLD Detection ─────────────────────────────────────────────────────────
+    function findEmbeddedTld(query) {
+      const sorted = [...TLDS].sort((a, b) => b.length - a.length);
+      for (const tld of sorted) {
+        if (query.endsWith(tld) && query.length > tld.length + 1)
+          return { name: query.slice(0, -tld.length), tld };
+      }
+      return null;
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    const searchInput = document.getElementById('search');
+    const resultsEl   = document.getElementById('results');
+    const spinner     = document.getElementById('spinner');
+
+    let debounceTimer  = null;
+    let searchId       = 0;
+    let currentResults = [];
+    let selectedDomain = null;
+
+    const taglineEl  = document.querySelector('.tagline');
+    const saveHintEl = document.getElementById('saveHint');
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const query = searchInput.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+      const hasInput = searchInput.value.length > 0;
+      taglineEl.classList.toggle('dimmed', hasInput);
+      saveHintEl.classList.toggle('dimmed', hasInput);
+      if (!query) {
+        clearTimeout(historyTimer);
+        resultsEl.innerHTML = '';
+        currentResults = [];
+        selectedDomain = null;
+        spinner.classList.remove('visible');
+        return;
+      }
+      spinner.classList.add('visible');
+      selectedDomain = null;
+      debounceTimer = setTimeout(() => runSearch(query), 320);
+    });
+
+    async function runSearch(query) {
+      const thisSearch = ++searchId;
+
+      try {
+        let domains;
+        if (query.includes('.')) {
+          // Extract base name (e.g. "acme" from "acme.com") and look for cached suggestions
+          const dotIdx = query.indexOf('.');
+          const base = query.slice(0, dotIdx);
+          const cached = base.length > 1 ? getCachedSuggestions(base) : null;
+
+          if (cached) {
+            // Reuse cached suggestion list — bump the exact typed domain to top, no extra API calls
+            domains = [query, ...cached.filter(d => d !== query)];
+          } else {
+            // Cold full-domain search — just check the one domain
+            domains = [query];
+          }
+        } else {
+          const embedded = findEmbeddedTld(query);
+          const data = await searchSuggestions(query);
+          if (thisSearch !== searchId) return;
+
+          const suggested = (data.results || []).map(r => r.domain);
+          const tldDomains = TLDS.map(tld => `${query}.${tld}`);
+          domains = [...new Set([...suggested, ...tldDomains])].slice(0, 20);
+
+          if (embedded) {
+            const ed = `${embedded.name}.${embedded.tld}`;
+            domains = [ed, ...domains.filter(d => d !== ed)];
+          }
+
+          // Cache this suggestion list so TLD-appended searches can reuse it
+          setCachedSuggestions(query, domains);
+        }
+
+        currentResults = domains.map(d => ({ domain: d, availability: null }));
+        renderResultsSkeleton(); // Initial render with stagger animation
+
+        // Save to history only after query sits idle for 4 seconds
+        clearTimeout(historyTimer);
+        const capturedQuery = query;
+        historyTimer = setTimeout(() => saveSearch(capturedQuery), 4000);
+
+        // Check each domain individually in parallel (BASIC plan = 1 domain per call)
+        await Promise.all(domains.map(async (domain, i) => {
+          try {
+            const summary = await checkStatus(domain);
+            if (thisSearch !== searchId) return;
+            const avail = parseStatus(summary);
+            currentResults[i] = { domain, availability: avail };
+            updateResultItem(i, avail); // In-place update — no re-render flicker
+          } catch {
+            if (thisSearch !== searchId) return;
+            currentResults[i] = { domain, availability: 'error' };
+            updateResultItem(i, 'error');
+          }
+        }));
+      } catch (err) {
+        console.error('Search error:', err);
+      }
+
+      if (thisSearch === searchId) spinner.classList.remove('visible');
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function dotClass(avail) {
+      if (!avail || avail === 'unknown') return 'dot-loading';
+      if (avail === 'available')         return 'dot-available';
+      if (avail === 'premium')           return 'dot-available';
+      if (avail === 'registered')        return 'dot-taken';
+      if (avail === 'maybe')             return 'dot-maybe';
+      return 'dot-error';
+    }
+
+    function isAvailable(avail) {
+      return avail === 'available' || avail === 'premium';
+    }
+
+    function registrarTileHTML(r, domain, delay) {
+      const style = delay != null ? ` style="animation: tileIn 0.16s ease-out ${delay}ms both"` : '';
+      return `<a class="registrar-tile" href="${r.url(domain)}" target="_blank" rel="noopener noreferrer"${style}>
+        <span>${r.name}</span>
+      </a>`;
+    }
+
+    function purchasePanelHTML(domain) {
+      const all = registrarsForDomain(domain);
+      const visible = all.slice(0, GRID_SHOW_DEFAULT);
+      const hidden  = all.slice(GRID_SHOW_DEFAULT);
+
+      const visibleTiles = visible.map((r, i) => registrarTileHTML(r, domain, i * 30)).join('');
+      const hiddenTiles  = hidden.map(r => registrarTileHTML(r, domain, null)).join('');
+
+      const showMoreBtn = hidden.length > 0
+        ? `<button class="show-more-btn" onclick="showMoreRegistrars(this)">
+            Show More &nbsp;<span class="show-more-count">${hidden.length}</span>
+           </button>`
+        : '';
+
+      return `<div class="purchase-panel">
+        <div class="panel-domain">${domain}</div>
+        <a class="buy-now-btn" href="${REGISTRARS_PRIMARY.url(domain)}" target="_blank" rel="noopener noreferrer">
+          buy now
+        </a>
+        <div class="purchase-options-heading">Purchase Options</div>
+        <div class="registrar-grid">${visibleTiles}</div>
+        <div class="registrar-grid registrar-grid-hidden" style="display:none">${hiddenTiles}</div>
+        ${showMoreBtn}
+      </div>`;
+    }
+
+    function showMoreRegistrars(btn) {
+      event.stopPropagation();
+      const grid = btn.previousElementSibling;
+      grid.style.display = 'grid';
+      // Animate hidden tiles in
+      grid.querySelectorAll('.registrar-tile').forEach((tile, i) => {
+        tile.style.animation = `tileIn 0.16s ease-out ${i * 25}ms both`;
+      });
+      btn.style.display = 'none';
+    }
+
+    function rowRightHTML(r) {
+      const avail = r.availability;
+      if (isAvailable(avail)) {
+        return `<button class="buy-link">buy now</button>`;
+      }
+      if (avail === 'registered' || avail === 'maybe' || avail === 'error') {
+        return `<div class="row-right">
+          <a class="whois-link" href="https://who.is/whois/${r.domain}" target="_blank" rel="noopener noreferrer">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span class="whois-text-full">whois lookup</span><span class="whois-text-short">whois</span>
+          </a>
+          <a class="ext-link" href="https://${r.domain}" target="_blank" rel="noopener noreferrer" title="Visit ${r.domain}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>
+            </svg>
+          </a>
+        </div>`;
+      }
+      return '';
+    }
+
+    function rowHTML(r, i) {
+      const avail  = r.availability;
+      const canBuy = isAvailable(avail);
+      const isSel  = r.domain === selectedDomain;
+      const delay  = Math.min(i * 32, 220);
+      return `<li class="result-row${canBuy ? ' available' : ''}${isSel ? ' selected' : ''}"
+                  data-index="${i}" data-domain="${r.domain}" data-avail="${canBuy}"
+                  style="animation: rowIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}ms both">
+        <div class="row-main">
+          <div class="row-left">
+            <span class="status-dot ${dotClass(avail)}"></span>
+            <span class="domain-label">${r.domain}</span>
+          </div>
+          ${rowRightHTML(r)}
+        </div>
+        ${canBuy ? purchasePanelHTML(r.domain) : ''}
+      </li>`;
+    }
+
+    // Full rebuild — used once per new search query
+    function renderResultsSkeleton() {
+      if (!currentResults.length) { resultsEl.innerHTML = ''; return; }
+      resultsEl.innerHTML = currentResults.map((r, i) => rowHTML(r, i)).join('');
+    }
+
+    // In-place update — used as each domain's status comes back
+    function updateResultItem(index, avail) {
+      const li = resultsEl.querySelector(`[data-index="${index}"]`);
+      if (!li) return;
+
+      const canBuy = isAvailable(avail);
+
+      // Animate the dot
+      const dot = li.querySelector('.status-dot');
+      const newClass = 'status-dot ' + dotClass(avail);
+      if (dot.className !== newClass) {
+        dot.className = newClass;
+        // Force reflow to restart animation
+        void dot.offsetWidth;
+        dot.classList.add('dot-pop');
+        dot.addEventListener('animationend', () => dot.classList.remove('dot-pop'), { once: true });
+      }
+
+      // Update row availability state
+      li.classList.toggle('available', canBuy);
+      li.dataset.avail = canBuy;
+
+      // Swap right-side content
+      const rowMain = li.querySelector('.row-main');
+      const existing = rowMain.querySelector('.row-right, .buy-link');
+      if (existing) existing.remove();
+      const r = currentResults[index];
+      const rightHTML = rowRightHTML(r);
+      if (rightHTML) rowMain.insertAdjacentHTML('beforeend', rightHTML);
+
+      // Add purchase panel if newly available
+      if (canBuy && !li.querySelector('.purchase-panel')) {
+        li.insertAdjacentHTML('beforeend', purchasePanelHTML(r.domain));
+      }
+    }
+
+    // ── Save history on intent clicks (buy / whois / launch) ──────────────────
+    resultsEl.addEventListener('click', e => {
+      const intent = e.target.closest('.buy-link, .buy-now-btn, .registrar-tile, .whois-link, .ext-link');
+      if (intent) {
+        const li = intent.closest('.result-row');
+        if (li) { clearTimeout(historyTimer); saveSearch(li.dataset.domain.split('.')[0]); }
+      }
+    });
+
+    // ── Click to expand purchase panel ────────────────────────────────────────
+    resultsEl.addEventListener('click', e => {
+      if (e.target.closest('a') || e.target.closest('.show-more-btn')) return;
+      const li = e.target.closest('li.result-row');
+      if (!li || li.dataset.avail !== 'true') return;
+
+      const wasSelected = li.classList.contains('selected');
+      // Collapse any open row
+      resultsEl.querySelectorAll('.result-row.selected').forEach(r => r.classList.remove('selected'));
+      // Toggle this one
+      if (!wasSelected) {
+        li.classList.add('selected');
+        selectedDomain = li.dataset.domain;
+      } else {
+        selectedDomain = null;
+      }
+    });
+
+    // ── Keyboard nav ──────────────────────────────────────────────────────────
+    searchInput.addEventListener('keydown', e => {
+      if (!currentResults.length) return;
+      const rows = [...resultsEl.querySelectorAll('.result-row')];
+      const sel  = resultsEl.querySelector('.selected');
+      let idx    = sel ? rows.indexOf(sel) : -1;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        idx = Math.min(idx + 1, rows.length - 1);
+        const row = rows[idx];
+        if (row?.dataset.avail === 'true') {
+          resultsEl.querySelectorAll('.result-row.selected').forEach(r => r.classList.remove('selected'));
+          row.classList.add('selected');
+          selectedDomain = row.dataset.domain;
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        idx = Math.max(idx - 1, -1);
+        resultsEl.querySelectorAll('.result-row.selected').forEach(r => r.classList.remove('selected'));
+        if (idx === -1) { selectedDomain = null; return; }
+        const row = rows[idx];
+        if (row?.dataset.avail === 'true') {
+          row.classList.add('selected');
+          selectedDomain = row.dataset.domain;
+        }
+      }
+    });
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    initAuth();
+  </script>
+</body>
+</html>
