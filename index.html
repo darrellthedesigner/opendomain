@@ -28,6 +28,8 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html, body { overflow-x: hidden; }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: #fff;
@@ -649,7 +651,7 @@
 
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 600px) {
-      header { padding: 16px clamp(20px, calc(50vw - 260px), 160px); }
+      header { padding: 16px 20px; }
       .auth-pill .pill-text { display: none; }
       .auth-pill { padding: 8px 12px; }
       .tagline { font-size: 1.25rem; margin: 40px 0 22px; }
@@ -657,6 +659,32 @@
       .modal { margin: 16px; }
       .whois-text-short { display: inline; }
       .whois-text-full  { display: none; }
+
+      /* ── Mobile hero: vertically centered before typing ── */
+      @keyframes heroUp {
+        from { transform: translateY(var(--hero-offset)); }
+        to   { transform: translateY(0); }
+      }
+
+      main {
+        padding-top: 0;
+        padding-bottom: 60px;
+      }
+
+      .hero-wrap {
+        --hero-offset: clamp(0px, calc(28vh - 40px), 200px);
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: translateY(var(--hero-offset));
+        transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      main.searching .hero-wrap {
+        transform: translateY(0);
+        animation: heroUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+      }
     }
   </style>
 </head>
@@ -704,6 +732,7 @@
 
   <!-- ── Main ── -->
   <main>
+    <div class="hero-wrap" id="heroWrap">
     <h1 class="tagline">Find your next great domain name,<br>it just may be open.</h1>
 
     <!-- Mobile-only auth buttons (below tagline, above search) -->
@@ -734,6 +763,7 @@
     <p class="save-hint" id="saveHint">
       Your searches can be saved if you register using <a id="hintGoogle">Google</a> or <a id="hintEmail">email</a>
     </p>
+    </div><!-- /.hero-wrap -->
 
     <ul class="results" id="results"></ul>
 
@@ -1130,6 +1160,7 @@
 
     const taglineEl  = document.querySelector('.tagline');
     const saveHintEl = document.getElementById('saveHint');
+    const mainEl     = document.querySelector('main');
 
     searchInput.addEventListener('input', () => {
       clearTimeout(debounceTimer);
@@ -1137,6 +1168,7 @@
       const hasInput = searchInput.value.length > 0;
       taglineEl.classList.toggle('dimmed', hasInput);
       saveHintEl.classList.toggle('dimmed', hasInput);
+      mainEl.classList.toggle('searching', hasInput);
       if (!query) {
         clearTimeout(historyTimer);
         resultsEl.innerHTML = '';
