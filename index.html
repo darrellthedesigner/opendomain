@@ -1245,7 +1245,7 @@
       return `<div class="purchase-panel">
         <div class="panel-domain">${domain}</div>
         <a class="buy-now-btn" href="${REGISTRARS_PRIMARY.url(domain)}" target="_blank" rel="noopener noreferrer">
-          buy now
+          grab it
         </a>
         <div class="purchase-options-heading">Purchase Options</div>
         <div class="registrar-grid">${visibleTiles}</div>
@@ -1268,7 +1268,7 @@
     function rowRightHTML(r) {
       const avail = r.availability;
       if (isAvailable(avail)) {
-        return `<button class="buy-link">buy now</button>`;
+        return `<button class="buy-link">grab it</button>`;
       }
       if (avail === 'registered' || avail === 'maybe' || avail === 'error') {
         return `<div class="row-right">
