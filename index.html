@@ -22,6 +22,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Pinned to exact version + SRI so the file can't be tampered with in transit.
        To upgrade: bump version, get new hash from https://www.jsdelivr.com/package/npm/@supabase/supabase-js -->
+  <style>
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .site-footer {
+      border-top: 1px solid #f0f0f0;
+      padding: 24px clamp(20px, calc(50vw - 340px), 160px);
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; flex-wrap: wrap; margin-top: auto;
+    }
+    .site-footer a { font-size: 0.78rem; color: #b3b3b3; text-decoration: none; transition: color 0.15s; }
+    .site-footer a:hover { color: #3f3f3f; }
+    .site-footer .footer-copy { font-size: 0.78rem; color: #d0d0d0; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.2/dist/umd/supabase.js"
           integrity="sha256-mpktpJWUIPVizC1GQ0rBuUR0gdYAH2t3UUuesSoxhbs="
           crossorigin="anonymous"></script>
@@ -1446,5 +1458,15 @@
     // ── Boot ──────────────────────────────────────────────────────────────────
     initAuth();
   </script>
+
+  <footer class="site-footer">
+    <a href="/about.html">About</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/affiliate.html">Affiliate Disclosure</a>
+    <a href="/cookies.html">Cookie Policy</a>
+    <span class="footer-copy">© 2026 opendomain</span>
+  </footer>
+
 </body>
 </html>

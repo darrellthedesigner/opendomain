@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — opendomain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #fff; color: #3f3f3f; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px clamp(20px, calc(50vw - 340px), 160px);
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 600; color: #3f3f3f;
+      text-decoration: none; letter-spacing: -0.02em;
+    }
+    .logo-text span { color: #b3b3b3; font-weight: 500; }
+    .back-link { font-size: 0.82rem; color: #999; text-decoration: none; }
+    .back-link:hover { color: #3f3f3f; }
+
+    main { flex: 1; padding: 60px clamp(20px, calc(50vw - 340px), 160px) 80px; }
+    .content { max-width: 680px; }
+
+    h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .updated { font-size: 0.8rem; color: #b3b3b3; margin-bottom: 48px; }
+    h2 { font-size: 1rem; font-weight: 600; color: #3f3f3f; margin: 36px 0 10px; letter-spacing: -0.01em; }
+    p { font-size: 0.9rem; color: #5d5d5d; line-height: 1.75; margin-bottom: 14px; }
+    ul { padding-left: 20px; margin-bottom: 14px; }
+    ul li { font-size: 0.9rem; color: #5d5d5d; line-height: 1.75; margin-bottom: 6px; }
+    a { color: #3f3f3f; }
+
+    footer {
+      border-top: 1px solid #f0f0f0;
+      padding: 24px clamp(20px, calc(50vw - 340px), 160px);
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; flex-wrap: wrap;
+    }
+    footer a { font-size: 0.78rem; color: #b3b3b3; text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: #3f3f3f; }
+    footer .footer-copy { font-size: 0.78rem; color: #d0d0d0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="/">
+      <svg width="28" height="23" viewBox="0 0 42 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M29.202 17.5808C29.202 11.1626 23.999 5.9596 17.5808 5.9596C11.1626 5.9596 5.9596 11.1626 5.9596 17.5808C5.9596 23.999 11.1626 29.202 17.5808 29.202V35.1616C7.8712 35.1616 0 27.2904 0 17.5808C0 7.8712 7.8712 0 17.5808 0C27.2904 0 35.1616 7.8712 35.1616 17.5808C35.1616 27.2904 27.2904 35.1616 17.5808 35.1616V29.202C23.999 29.202 29.202 23.999 29.202 17.5808Z" fill="#3F3F3F"/>
+        <circle cx="38.7374" cy="3.57576" r="3.57576" fill="#11CE8F"/>
+      </svg>
+      <span class="logo-text">opendomain<span>.name</span></span>
+    </a>
+    <a class="back-link" href="/">← Back to search</a>
+  </header>
+
+  <main>
+    <div class="content">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: March 18, 2026</p>
+
+      <p>opendomain is built with privacy in mind. We collect only what's necessary to run the service and never sell your data to third parties.</p>
+
+      <h2>What we collect</h2>
+      <p>If you use opendomain without signing in, we collect nothing. No tracking, no cookies, no analytics.</p>
+      <p>If you create an account, we collect:</p>
+      <ul>
+        <li><strong>Email address</strong> — used to identify your account and send magic link sign-in emails.</li>
+        <li><strong>Name and profile picture</strong> — pulled from Google if you sign in with Google.</li>
+        <li><strong>Search history</strong> — the domain names you search, stored so you can revisit them. You can delete this at any time.</li>
+      </ul>
+
+      <h2>DNS queries</h2>
+      <p>Domain availability is checked by querying Cloudflare's public DNS over HTTPS service at <code>cloudflare-dns.com</code>. These queries contain only the domain name being checked and are subject to <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare's privacy policy</a>. We do not log or store these queries on our servers.</p>
+
+      <h2>How we store data</h2>
+      <p>Account data and search history are stored in <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a>, a hosted database platform. Data is stored in the United States. Supabase encrypts data at rest and in transit.</p>
+
+      <h2>Cookies</h2>
+      <p>We use a single session cookie set by Supabase to keep you signed in. We do not use advertising or tracking cookies. See our <a href="/cookies.html">Cookie Policy</a> for details.</p>
+
+      <h2>Affiliate links</h2>
+      <p>When you click a registrar link, we may earn a commission. We do not share your personal information with registrars. See our <a href="/affiliate.html">Affiliate Disclosure</a> for details.</p>
+
+      <h2>Your rights</h2>
+      <p>You can delete your search history at any time from within the app. To delete your account and all associated data, contact us and we'll remove everything within 30 days.</p>
+
+      <h2>Children</h2>
+      <p>opendomain is not directed at children under 13. We do not knowingly collect data from children.</p>
+
+      <h2>Changes</h2>
+      <p>If we make material changes to this policy, we'll update the date at the top of this page. Continued use of opendomain after changes constitutes acceptance of the updated policy.</p>
+
+      <h2>Contact</h2>
+      <p>Questions? Reach out at <a href="mailto:hello@opendomain.name">hello@opendomain.name</a>.</p>
+    </div>
+  </main>
+
+  <footer>
+    <a href="/about.html">About</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/affiliate.html">Affiliate Disclosure</a>
+    <a href="/cookies.html">Cookie Policy</a>
+    <span class="footer-copy">© 2026 opendomain</span>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Policy — opendomain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #fff; color: #3f3f3f; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px clamp(20px, calc(50vw - 340px), 160px);
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 600; color: #3f3f3f;
+      text-decoration: none; letter-spacing: -0.02em;
+    }
+    .logo-text span { color: #b3b3b3; font-weight: 500; }
+    .back-link { font-size: 0.82rem; color: #999; text-decoration: none; }
+    .back-link:hover { color: #3f3f3f; }
+
+    main { flex: 1; padding: 60px clamp(20px, calc(50vw - 340px), 160px) 80px; }
+    .content { max-width: 680px; }
+
+    h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .updated { font-size: 0.8rem; color: #b3b3b3; margin-bottom: 48px; }
+    h2 { font-size: 1rem; font-weight: 600; color: #3f3f3f; margin: 36px 0 10px; letter-spacing: -0.01em; }
+    p { font-size: 0.9rem; color: #5d5d5d; line-height: 1.75; margin-bottom: 14px; }
+    a { color: #3f3f3f; }
+
+    .cookie-table {
+      width: 100%; border-collapse: collapse;
+      margin: 20px 0 14px; font-size: 0.88rem;
+    }
+    .cookie-table th {
+      text-align: left; padding: 10px 14px;
+      background: #f7f7f5; color: #3f3f3f; font-weight: 500;
+      border-radius: 8px 8px 0 0;
+    }
+    .cookie-table td {
+      padding: 10px 14px; color: #5d5d5d;
+      border-top: 1px solid #f0f0f0;
+    }
+    .cookie-table th:first-child { border-radius: 8px 0 0 0; }
+    .cookie-table th:last-child { border-radius: 0 8px 0 0; }
+
+    footer {
+      border-top: 1px solid #f0f0f0;
+      padding: 24px clamp(20px, calc(50vw - 340px), 160px);
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; flex-wrap: wrap;
+    }
+    footer a { font-size: 0.78rem; color: #b3b3b3; text-decoration: none; transition: color 0.15s; }
+    footer a:hover { color: #3f3f3f; }
+    footer .footer-copy { font-size: 0.78rem; color: #d0d0d0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="/">
+      <svg width="28" height="23" viewBox="0 0 42 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M29.202 17.5808C29.202 11.1626 23.999 5.9596 17.5808 5.9596C11.1626 5.9596 5.9596 11.1626 5.9596 17.5808C5.9596 23.999 11.1626 29.202 17.5808 29.202V35.1616C7.8712 35.1616 0 27.2904 0 17.5808C0 7.8712 7.8712 0 17.5808 0C27.2904 0 35.1616 7.8712 35.1616 17.5808C35.1616 27.2904 27.2904 35.1616 17.5808 35.1616V29.202C23.999 29.202 29.202 23.999 29.202 17.5808Z" fill="#3F3F3F"/>
+        <circle cx="38.7374" cy="3.57576" r="3.57576" fill="#11CE8F"/>
+      </svg>
+      <span class="logo-text">opendomain<span>.name</span></span>
+    </a>
+    <a class="back-link" href="/">← Back to search</a>
+  </header>
+
+  <main>
+    <div class="content">
+      <h1>Cookie Policy</h1>
+      <p class="updated">Last updated: March 18, 2026</p>
+
+      <p>opendomain uses cookies only where strictly necessary to provide the service. We do not use tracking, advertising, or analytics cookies.</p>
+
+      <h2>What cookies we use</h2>
+      <table class="cookie-table">
+        <thead>
+          <tr>
+            <th>Cookie</th>
+            <th>Purpose</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sb-*</code></td>
+            <td>Supabase session — keeps you signed in</td>
+            <td>Until sign out or expiry</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>That's it. No Google Analytics, no advertising pixels, no third-party trackers.</p>
+
+      <h2>What cookies we don't use</h2>
+      <p>We do not set cookies for advertising, remarketing, user profiling, or analytics. We do not share cookie data with any third parties for marketing purposes.</p>
+
+      <h2>Session cookies explained</h2>
+      <p>The <code>sb-*</code> cookie is set by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, our authentication provider, when you sign in. It stores an encrypted session token that identifies your account. Without this cookie, you'd be signed out on every page load. If you don't sign in, this cookie is never set.</p>
+
+      <h2>How to control cookies</h2>
+      <p>You can block or delete cookies through your browser settings. Blocking the Supabase session cookie will prevent sign-in functionality, but opendomain's core search features work without any cookies at all.</p>
+      <p>Instructions for common browsers:</p>
+      <p>
+        <a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Chrome</a> ·
+        <a href="https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox" target="_blank" rel="noopener">Firefox</a> ·
+        <a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac" target="_blank" rel="noopener">Safari</a> ·
+        <a href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener">Edge</a>
+      </p>
+
+      <h2>Changes</h2>
+      <p>If our cookie use changes, we'll update this page and revise the date above.</p>
+
+      <h2>Questions</h2>
+      <p>Contact us at <a href="mailto:hello@opendomain.name">hello@opendomain.name</a>.</p>
+    </div>
+  </main>
+
+  <footer>
+    <a href="/about.html">About</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms</a>
+    <a href="/affiliate.html">Affiliate Disclosure</a>
+    <a href="/cookies.html">Cookie Policy</a>
+    <span class="footer-copy">© 2026 opendomain</span>
+  </footer>
+
+</body>
+</html>
