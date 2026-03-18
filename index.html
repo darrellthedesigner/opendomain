@@ -74,6 +74,11 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes heroUp {
+      from { transform: translateY(var(--hero-offset)); }
+      to   { transform: translateY(0); }
+    }
+
     @keyframes taglineIn {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -317,6 +322,21 @@
       flex-direction: column;
       align-items: center;
       padding: 0 20px 80px;
+    }
+
+    /* ── Hero: vertically offset before typing, animates to top ─── */
+    .hero-wrap {
+      --hero-offset: clamp(0px, calc(18vh - 40px), 200px);
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(var(--hero-offset));
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    main.searching .hero-wrap {
+      transform: translateY(0);
+      animation: heroUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     }
 
     .tagline {
@@ -661,12 +681,6 @@
       .whois-text-full  { display: none; }
       .save-hint { max-width: 260px; }
 
-      /* ── Mobile hero: vertically centered before typing ── */
-      @keyframes heroUp {
-        from { transform: translateY(var(--hero-offset)); }
-        to   { transform: translateY(0); }
-      }
-
       main {
         padding-top: 0;
         padding-left: 30px;
@@ -676,17 +690,6 @@
 
       .hero-wrap {
         --hero-offset: clamp(0px, calc(18vh - 40px), 160px);
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transform: translateY(var(--hero-offset));
-        transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      }
-
-      main.searching .hero-wrap {
-        transform: translateY(0);
-        animation: heroUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
       }
     }
   </style>
