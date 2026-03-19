@@ -6,8 +6,6 @@
     }
     .cursor { animation: blink 1.1s step-end infinite; }
   </style>
-  <!-- Green circle -->
   <circle cx="194" cy="256" r="191" fill="#11CE8F"/>
-  <!-- Blinking cursor bar -->
   <rect class="cursor" x="441" y="66" width="67" height="381" rx="8" fill="#3F3F3F"/>
 </svg>
