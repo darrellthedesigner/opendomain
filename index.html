@@ -919,16 +919,21 @@
     let historyTimer = null;
 
     async function initAuth() {
-      // Register listener FIRST so it catches the SIGNED_IN event
-      // fired when Supabase exchanges the magic-link code in the URL
+      // If returning from OAuth, explicitly exchange the code before anything else
+      const urlCode = new URLSearchParams(window.location.search).get('code');
+      if (urlCode) {
+        await sb.auth.exchangeCodeForSession(window.location.href);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Register listener so it catches subsequent auth events
       sb.auth.onAuthStateChange((event, session) => {
         setUser(session?.user ?? null);
         if (event === 'SIGNED_IN') {
-          // Clean up the ?code= / #access_token= from the address bar
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       });
-      // Then hydrate the initial session (covers normal page loads)
+      // Hydrate the initial session
       const { data: { session } } = await sb.auth.getSession();
       setUser(session?.user ?? null);
     }
