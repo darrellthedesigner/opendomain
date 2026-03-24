@@ -1,0 +1,17 @@
+{
+  "name": "OpenDomain.name",
+  "short_name": "OpenDomain",
+  "description": "Find your next great domain name, it just may be open.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#11CE8F",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
