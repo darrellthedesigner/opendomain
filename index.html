@@ -912,34 +912,75 @@
     }
 
     // ── Supabase ─────────────────────────────────────────────────────────────
+    const authCallbackExpected = new URLSearchParams(window.location.search).has('code');
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { flowType: 'pkce', detectSessionInUrl: true }
     });
     let currentUser = null;
     let historyTimer = null;
+    let historyVersion = 0;
+    let googlePending = false;
+    let magicPending = false;
+    let modalVersion = 0;
+
+    function cleanAuthUrl() {
+      const url = new URL(window.location.href);
+      ['code', 'error', 'error_code', 'error_description'].forEach(key => url.searchParams.delete(key));
+      // Auth errors may also be returned in the fragment.
+      const fragment = new URLSearchParams(url.hash.slice(1));
+      if (fragment.has('error') || fragment.has('error_description')) url.hash = '';
+      window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+    }
 
     async function initAuth() {
-      // If returning from OAuth, explicitly exchange the code before anything else
-      const urlCode = new URLSearchParams(window.location.search).get('code');
-      if (urlCode) {
-        await sb.auth.exchangeCodeForSession(window.location.href);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-
-      // Register listener so it catches subsequent auth events
+      // Supabase detects and exchanges the PKCE code once during initialization.
+      // INITIAL_SESSION hydrates the UI; keep this callback synchronous.
       sb.auth.onAuthStateChange((event, session) => {
         setUser(session?.user ?? null);
-        if (event === 'SIGNED_IN') {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
+        if (event === 'SIGNED_IN') cleanAuthUrl();
       });
-      // Hydrate the initial session
-      const { data: { session } } = await sb.auth.getSession();
-      setUser(session?.user ?? null);
+      try {
+        const { error } = await sb.auth.initialize();
+        if (error) throw error;
+        if (authCallbackExpected) {
+          const { data, error: sessionError } = await sb.auth.getSession();
+          if (sessionError || !data.session) throw sessionError || new Error('Incomplete sign-in');
+        }
+      } catch {
+        alert('Sign-in could not be completed. Please start again in the same browser where you requested the link.');
+      } finally {
+        cleanAuthUrl();
+      }
+    }
+
+    function clearHistory() {
+      clearTimeout(historyTimer);
+      historyVersion++;
+      document.getElementById('historySection').style.display = 'none';
+      document.getElementById('historyList').innerHTML = '';
+    }
+
+    function resetMagicForm() {
+      modalVersion++;
+      const btn = document.getElementById('btnMagic');
+      btn.disabled = magicPending;
+      btn.textContent = magicPending ? 'Sending…' : 'Send magic link';
+      btn.style.display = '';
+      document.getElementById('magicEmail').style.display = '';
+      document.getElementById('magicSent').style.display = 'none';
     }
 
     function setUser(user) {
+      const changed = currentUser?.id !== user?.id;
+      if (changed || !user) clearHistory();
       currentUser = user;
+      if (user) {
+        closeModal();
+        if (changed) {
+          // Database calls must run outside Supabase's auth callback lock.
+          setTimeout(() => { if (currentUser?.id === user.id) loadHistory(); }, 0);
+        }
+      }
       const loggedOut = ['btnGoogle','btnOpenEmailModal'];
       const loggedIn  = document.getElementById('userMenu');
       const mobileAuth = document.getElementById('mobileAuthArea');
@@ -958,59 +999,108 @@
         // Only allow avatar URLs from known Google/GitHub CDN domains
         const trustedAvatar = avatar && /^https:\/\/(lh3\.googleusercontent\.com|avatars\.githubusercontent\.com)\//.test(avatar);
         av.innerHTML = trustedAvatar ? `<img src="${escapeHTML(avatar)}" alt="">` : escapeHTML(name[0].toUpperCase());
-        loadHistory();
       } else {
         loggedOut.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
         if (mobileAuth) mobileAuth.style.display = '';
         loggedIn.style.display = 'none';
         document.getElementById('saveHint').style.display = '';
         document.getElementById('historySection').style.display = 'none';
+        document.getElementById('ddName').textContent = '—';
+        document.getElementById('ddEmail').textContent = '—';
+        document.getElementById('userAvatar').textContent = '?';
+        closeDropdown();
       }
     }
 
     async function signInWithGoogle() {
-      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+      if (googlePending) return;
+      googlePending = true;
+      try {
+        const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+        if (error) throw error;
+      } catch {
+        alert('Google sign-in is unavailable right now. Please try again or sign in with email.');
+      } finally {
+        googlePending = false;
+      }
     }
 
     async function sendMagicLink() {
-      const email = document.getElementById('magicEmail').value.trim();
-      if (!email) return;
+      if (magicPending) return;
+      const input = document.getElementById('magicEmail');
+      const email = input.value.trim();
+      if (!email || !input.reportValidity()) return;
+      magicPending = true;
+      const version = modalVersion;
       const btn = document.getElementById('btnMagic');
       btn.disabled = true;
       btn.textContent = 'Sending…';
-      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-      if (!error) {
-        document.getElementById('magicEmail').style.display = 'none';
-        btn.style.display = 'none';
-        document.getElementById('magicSent').style.display = 'flex';
-      } else {
+      try {
+        const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+        if (error) throw error;
+        if (version === modalVersion) {
+          input.style.display = 'none';
+          btn.style.display = 'none';
+          document.getElementById('magicSent').style.display = 'flex';
+        }
+      } catch {
+        if (version === modalVersion) alert('The sign-in email could not be sent. Please try again.');
+      } finally {
+        magicPending = false;
         btn.disabled = false;
         btn.textContent = 'Send magic link';
-        alert('Something went wrong. Please try again.');
       }
     }
 
     async function signOut() {
-      await sb.auth.signOut();
-      closeDropdown();
+      try {
+        const { error } = await sb.auth.signOut();
+        if (error) throw error;
+        setUser(null);
+        closeDropdown();
+      } catch {
+        alert('Sign-out could not be completed. Please try again.');
+      }
     }
 
     // ── History ───────────────────────────────────────────────────────────────
-    async function saveSearch(query) {
-      if (!currentUser) return;
-      await sb.from('search_history').upsert(
-        { user_id: currentUser.id, query, searched_at: new Date().toISOString() },
-        { onConflict: 'user_id,query' }
-      );
+    async function saveSearch(query, userId = currentUser?.id) {
+      if (!userId || currentUser?.id !== userId) return;
+      try {
+        const { error } = await sb.from('search_history').upsert(
+          { user_id: userId, query, searched_at: new Date().toISOString() },
+          { onConflict: 'user_id,query' }
+        );
+        if (error) throw error;
+        if (currentUser?.id === userId) await loadHistory();
+      } catch {
+        if (currentUser?.id === userId) showHistoryError('Search history could not be saved.');
+      }
+    }
+
+    function showHistoryError(message) {
+      document.getElementById('historySection').style.display = 'block';
+      document.getElementById('historyList').innerHTML = `<li class="history-empty">${escapeHTML(message)}</li>`;
     }
 
     async function loadHistory() {
       if (!currentUser) return;
-      const { data } = await sb.from('search_history')
+      const userId = currentUser.id;
+      const version = ++historyVersion;
+      let data;
+      try {
+        const result = await sb.from('search_history')
         .select('query, searched_at')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', userId)
         .order('searched_at', { ascending: false })
         .limit(10);
+        if (result.error) throw result.error;
+        data = result.data;
+      } catch {
+        if (version === historyVersion && currentUser?.id === userId) showHistoryError('Search history is unavailable. Please try again later.');
+        return;
+      }
+      if (version !== historyVersion || currentUser?.id !== userId) return;
 
       const section = document.getElementById('historySection');
       const list    = document.getElementById('historyList');
@@ -1043,22 +1133,24 @@
         });
         li.querySelector('.history-delete').addEventListener('click', async (e) => {
           e.stopPropagation(); // don't trigger the row click
+          if (currentUser?.id !== userId) return;
           const query = li.dataset.query;
-          await sb.from('search_history').delete()
-            .eq('user_id', currentUser.id)
-            .eq('query', query);
-          li.remove();
-          // show empty state if list is now empty
-          if (!list.querySelector('.history-item')) {
-            list.innerHTML = '<li class="history-empty">No searches yet</li>';
+          try {
+            const { error } = await sb.from('search_history').delete()
+              .eq('user_id', userId)
+              .eq('query', query);
+            if (error) throw error;
+            if (currentUser?.id === userId) await loadHistory();
+          } catch {
+            if (currentUser?.id === userId) alert('This search could not be removed. Please try again.');
           }
         });
       });
     }
 
     // ── Modal ─────────────────────────────────────────────────────────────────
-    function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
-    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+    function openModal()  { resetMagicForm(); document.getElementById('modalOverlay').classList.add('open'); }
+    function closeModal() { modalVersion++; document.getElementById('modalOverlay').classList.remove('open'); }
     function closeDropdown() { document.getElementById('userDropdown').classList.remove('open'); }
 
     document.getElementById('btnGoogle').addEventListener('click', signInWithGoogle);
@@ -1137,27 +1229,30 @@
       return domains.slice(0, 20);
     }
 
-    // ── Domain availability via DNS over HTTPS (Cloudflare, CORS-enabled) ────
-    // NS records exist on every registered domain — NXDOMAIN means unregistered.
+    // ── DNS hints via DNS over HTTPS (Cloudflare, CORS-enabled) ───────────────
+    // DNS absence never proves that a domain can be registered.
     async function checkStatus(domain) {
-      const cached = getCached('s_' + domain);
-      if (cached) return cached;
+      // New namespace invalidates older cached NXDOMAIN = available results.
+      const cacheKey = 'dns_v2_' + domain;
+      const cached = getCached(cacheKey);
+      if (cached === 'active' || cached === 'maybe') return cached;
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       try {
         const res = await fetch(
           `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=NS`,
-          { headers: { Accept: 'application/dns-json' } }
+          { headers: { Accept: 'application/dns-json' }, signal: controller.signal }
         );
-        if (!res.ok) { setCache('s_' + domain, 'unknown'); return 'unknown'; }
+        if (!res.ok) return 'unknown';
 
         const data = await res.json();
         let summary;
 
         if (data.Status === 3) {
-          // NXDOMAIN — no DNS record exists → domain is available
-          summary = 'inactive';
-        } else if (data.Status === 0 && data.Answer?.length > 0) {
-          // NS records found → domain is registered and active
+          summary = 'maybe';
+        } else if (data.Status === 0 && data.Answer?.some(answer => answer.type === 2)) {
+          // Only an NS answer is evidence of delegation.
           summary = 'active';
         } else if (data.Status === 0) {
           // No error but no NS answer → registered but NS not yet propagated
@@ -1166,19 +1261,21 @@
           summary = 'unknown';
         }
 
-        setCache('s_' + domain, summary);
+        if (summary !== 'unknown') setCache(cacheKey, summary);
         return summary;
       } catch {
         return 'unknown';
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
     function parseStatus(summary) {
       if (!summary) return 'unknown';
-      if (summary === 'inactive' || summary === 'available') return 'available';
+      if (summary === 'available') return 'available';
       if (summary === 'active' || summary === 'taken')       return 'registered';
       if (summary === 'premium' || summary === 'marketed')   return 'premium';
-      if (summary === 'parked' || summary === 'pending')     return 'maybe';
+      if (['inactive', 'maybe', 'parked', 'pending'].includes(summary)) return 'maybe';
       return 'unknown';
     }
 
@@ -1208,6 +1305,12 @@
 
     searchInput.addEventListener('input', () => {
       clearTimeout(debounceTimer);
+      clearTimeout(historyTimer);
+      // Invalidate in-flight responses immediately, including during debounce.
+      searchId++;
+      resultsEl.innerHTML = '';
+      currentResults = [];
+      selectedDomain = null;
       const query = searchInput.value.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
       const hasInput = searchInput.value.length > 0;
       taglineEl.classList.toggle('dimmed', hasInput);
@@ -1260,12 +1363,15 @@
         currentResults = domains.map(d => ({ domain: d, availability: null }));
         renderResultsSkeleton(); // Initial render with stagger animation
 
-        // Save to history only after query sits idle for 4 seconds
+        // Save only for the account that started this search.
         clearTimeout(historyTimer);
         const capturedQuery = query;
-        historyTimer = setTimeout(() => saveSearch(capturedQuery), 4000);
+        const userId = currentUser?.id;
+        historyTimer = setTimeout(() => {
+          if (thisSearch === searchId) saveSearch(capturedQuery, userId);
+        }, 4000);
 
-        // Check each domain individually in parallel (BASIC plan = 1 domain per call)
+        // Check DNS hints in parallel; registration must be confirmed by a registrar.
         await Promise.all(domains.map(async (domain, i) => {
           try {
             const summary = await checkStatus(domain);
@@ -1288,7 +1394,7 @@
 
     // ── Render ────────────────────────────────────────────────────────────────
     function dotClass(avail) {
-      if (!avail || avail === 'unknown') return 'dot-loading';
+      if (!avail)                       return 'dot-loading';
       if (avail === 'available')         return 'dot-available';
       if (avail === 'premium')           return 'dot-available';
       if (avail === 'registered')        return 'dot-taken';
@@ -1298,6 +1404,16 @@
 
     function isAvailable(avail) {
       return avail === 'available' || avail === 'premium';
+    }
+
+    function canCheckRegistrar(avail) {
+      return isAvailable(avail) || ['maybe', 'unknown', 'error'].includes(avail);
+    }
+
+    function statusLabel(avail) {
+      if (!avail) return 'Checking domain';
+      if (avail === 'registered') return 'DNS records found';
+      return 'Availability unconfirmed — check with a registrar';
     }
 
     function registrarTileHTML(r, domain, delay) {
@@ -1316,7 +1432,7 @@
       const hiddenTiles  = hidden.map(r => registrarTileHTML(r, domain, null)).join('');
 
       const showMoreBtn = hidden.length > 0
-        ? `<button class="show-more-btn" onclick="showMoreRegistrars(this)">
+        ? `<button class="show-more-btn" onclick="showMoreRegistrars(this, event)">
             Show More &nbsp;<span class="show-more-count">${hidden.length}</span>
            </button>`
         : '';
@@ -1324,16 +1440,16 @@
       return `<div class="purchase-panel">
         <div class="panel-domain">${domain}</div>
         <a class="buy-now-btn" href="${REGISTRARS_PRIMARY.url(domain)}" target="_blank" rel="noopener noreferrer">
-          buy now
+          Check availability
 </a>
-        <div class="purchase-options-heading">Purchase Options</div>
+        <div class="purchase-options-heading">Confirm availability and pricing with a registrar</div>
         <div class="registrar-grid">${visibleTiles}</div>
         <div class="registrar-grid registrar-grid-hidden" style="display:none">${hiddenTiles}</div>
         ${showMoreBtn}
       </div>`;
     }
 
-    function showMoreRegistrars(btn) {
+    function showMoreRegistrars(btn, event) {
       event.stopPropagation();
       const grid = btn.previousElementSibling;
       grid.style.display = 'grid';
@@ -1346,8 +1462,8 @@
 
     function rowRightHTML(r) {
       const avail = r.availability;
-      if (isAvailable(avail)) {
-        return `<button class="buy-link">grab it</button>`;
+      if (canCheckRegistrar(avail)) {
+        return `<button class="buy-link">check registrar</button>`;
       }
       if (avail === 'registered' || avail === 'maybe' || avail === 'error') {
         return `<div class="row-right">
@@ -1367,7 +1483,7 @@
 
     function rowHTML(r, i) {
       const avail  = r.availability;
-      const canBuy = isAvailable(avail);
+      const canBuy = canCheckRegistrar(avail);
       const isSel  = r.domain === selectedDomain;
       const delay  = Math.min(i * 32, 220);
       return `<li class="result-row${canBuy ? ' available' : ''}${isSel ? ' selected' : ''}"
@@ -1375,7 +1491,7 @@
                   style="animation: rowIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}ms both">
         <div class="row-main">
           <div class="row-left">
-            <span class="status-dot ${dotClass(avail)}"></span>
+            <span class="status-dot ${dotClass(avail)}" role="img" aria-label="${statusLabel(avail)}" title="${statusLabel(avail)}"></span>
             <span class="domain-label">${r.domain}</span>
           </div>
           ${rowRightHTML(r)}
@@ -1395,10 +1511,12 @@
       const li = resultsEl.querySelector(`[data-index="${index}"]`);
       if (!li) return;
 
-      const canBuy = isAvailable(avail);
+      const canBuy = canCheckRegistrar(avail);
 
       // Animate the dot
       const dot = li.querySelector('.status-dot');
+      dot.title = statusLabel(avail);
+      dot.setAttribute('aria-label', statusLabel(avail));
       const newClass = 'status-dot ' + dotClass(avail);
       if (dot.className !== newClass) {
         dot.className = newClass;

@@ -1,0 +1,10 @@
+{
+  "name": "opendomain",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": { "test": "node --test tests/*.test.cjs" },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.99.2",
+    "jsdom": "26.1.0"
+  }
+}
